@@ -1,4 +1,4 @@
-﻿namespace AuthJWT;
+﻿namespace AuthJWT.Entities;
 
 public class User
 {
