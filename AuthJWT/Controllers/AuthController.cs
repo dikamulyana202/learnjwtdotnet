@@ -1,46 +1,78 @@
 using AuthJWT.Entities;
 using AuthJWT.Models;
+
+using System.Security.Claims;
+using System.Text;
+
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
+
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace AuthJWT.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class AuthController : ControllerBase
-    {
-        public static User user = new();
+   [Route("api/[controller]")]
+   [ApiController]
+   public class AuthController(IConfiguration configuration) : ControllerBase
+   {
+      public static User user = new();
 
-        [HttpPost("register")]
-        public ActionResult<User> Register(UserDto request)
-        {
+      [HttpPost("register")]
+      public ActionResult<User> Register(UserDto request)
+      {
             var hashedPassword = new PasswordHasher<User>()
-                .HashPassword(user, request.Password);
+               .HashPassword(user, request.Password);
 
             user.Username = request.Username;
             user.PasswordHash = hashedPassword;
 
             return Ok(user);
-        }
+      }
 
-        [HttpPost("login")]
+      [HttpPost("login")]
 
-        public ActionResult<string> Login(UserDto request)
-        {
+      public ActionResult<string> Login(UserDto request)
+      {
             if (user.Username != request.Username)
             {
-                return BadRequest("User te kapanggih mang");
+               return BadRequest("User te kapanggih mang");
             }
             if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password)
-                == PasswordVerificationResult.Failed)
+               == PasswordVerificationResult.Failed)
             {
-                return BadRequest("password salah");
+               return BadRequest("password salah");
             }
-            string token = "bisa king";
+            string token = CreateToken(user);
 
             return Ok(token);
-        }
-    }
+      }
+
+      private string CreateToken(User user)
+      {
+            var claims = new List<Claim>
+            {
+               new Claim(ClaimTypes.Name, user.Username)
+            };
+
+            var key = new SymmetricSecurityKey(
+               Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!)
+            );
+
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
+
+            var tokenDescriptor = new JwtSecurityToken(
+               issuer: configuration.GetValue<string>("AppSettings:Issuer"),
+               audience: configuration.GetValue<string>("AppSettings:Audience"),
+               claims: claims,
+               expires: DateTime.UtcNow.AddMinutes(15),
+               signingCredentials: creds
+            ); 
+
+            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+      }
+   }
 }
