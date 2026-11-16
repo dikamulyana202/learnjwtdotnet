@@ -1,6 +1,7 @@
 using AuthJWT.Entities;
 using AuthJWT.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,6 +23,24 @@ namespace AuthJWT.Controllers
             user.PasswordHash = hashedPassword;
 
             return Ok(user);
+        }
+
+        [HttpPost("login")]
+
+        public ActionResult<string> Login(UserDto request)
+        {
+            if (user.Username != request.Username)
+            {
+                return BadRequest("User te kapanggih mang");
+            }
+            if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password)
+                == PasswordVerificationResult.Failed)
+            {
+                return BadRequest("password salah");
+            }
+            string token = "bisa king";
+
+            return Ok(token);
         }
     }
 }
