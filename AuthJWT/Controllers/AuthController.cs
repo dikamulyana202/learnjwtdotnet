@@ -33,14 +33,24 @@ namespace AuthJWT.Controllers
 
       [HttpPost("login")]
 
-      public async Task<ActionResult<string>> Login(UserDto request)
+      public async Task<ActionResult<TokenResponseDto>> Login(UserDto request)
       {
-         var token = await authService.LoginAsync(request);
-         if (token is null)
+         var result = await authService.LoginAsync(request);
+         if (result is null)
          {
             return BadRequest("Username atawa Katasandina Salah.");
          }
-         return Ok(token);
+         return Ok(result);
+      }
+
+      [HttpPost("refresh-token")]
+      public async Task<ActionResult<TokenResponseDto>> RefreshToken(RefreshTokenRequestDto request)
+      {
+         var result = await authService.RefreshTokenAsync(request);
+         if (result is null)
+            return Unauthorized("refresh token na ewehan atau basi mang");
+
+         return Ok(result);
       }
 
       [Authorize]
@@ -48,6 +58,13 @@ namespace AuthJWT.Controllers
       public IActionResult AuthenticatedOnlyEndpoint()
       {
          return Ok("u uda login bwang!");
+      }
+
+      [Authorize(Roles = "Admin, SuperAdmin")]
+      [HttpGet("admin-only")]
+      public IActionResult AdminOnlyEndpoint()
+      {
+         return Ok("sungkem admin!");
       }
    }
 }
