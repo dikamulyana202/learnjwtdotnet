@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using AuthJWT.Services;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AuthJWT.Controllers
 {
@@ -40,6 +41,13 @@ namespace AuthJWT.Controllers
             return BadRequest("Username atawa Katasandina Salah.");
          }
          return Ok(token);
+      }
+
+      [Authorize]
+      [HttpGet]
+      public IActionResult AuthenticatedOnlyEndpoint()
+      {
+         return Ok("u uda login bwang!");
       }
    }
 }
