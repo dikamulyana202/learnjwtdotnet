@@ -5,74 +5,41 @@ using System.Security.Claims;
 using System.Text;
 
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.IdentityModel.JsonWebTokens;
+// using Microsoft.IdentityModel.JsonWebTokens;
 
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
+using AuthJWT.Services;
 
 namespace AuthJWT.Controllers
 {
    [Route("api/[controller]")]
    [ApiController]
-   public class AuthController(IConfiguration configuration) : ControllerBase
+   public class AuthController(IAuthService authService) : ControllerBase
    {
-      public static User user = new();
-
       [HttpPost("register")]
-      public ActionResult<User> Register(UserDto request)
+      public async Task<ActionResult<User>> Register(UserDto request)
       {
-            var hashedPassword = new PasswordHasher<User>()
-               .HashPassword(user, request.Password);
+         var user = await authService.RegisterAsync(request);
+         if (user is null)
+         {
+            return BadRequest("User Sudah Aya.");
+         }
 
-            user.Username = request.Username;
-            user.PasswordHash = hashedPassword;
-
-            return Ok(user);
+         return Ok(user);
       }
 
       [HttpPost("login")]
 
-      public ActionResult<string> Login(UserDto request)
+      public async Task<ActionResult<string>> Login(UserDto request)
       {
-            if (user.Username != request.Username)
-            {
-               return BadRequest("User te kapanggih mang");
-            }
-            if (new PasswordHasher<User>().VerifyHashedPassword(user, user.PasswordHash, request.Password)
-               == PasswordVerificationResult.Failed)
-            {
-               return BadRequest("password salah");
-            }
-            string token = CreateToken(user);
-
-            return Ok(token);
-      }
-
-      private string CreateToken(User user)
-      {
-            var claims = new List<Claim>
-            {
-               new Claim(ClaimTypes.Name, user.Username)
-            };
-
-            var key = new SymmetricSecurityKey(
-               Encoding.UTF8.GetBytes(configuration.GetValue<string>("AppSettings:Token")!)
-            );
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512);
-
-            var tokenDescriptor = new JwtSecurityToken(
-               issuer: configuration.GetValue<string>("AppSettings:Issuer"),
-               audience: configuration.GetValue<string>("AppSettings:Audience"),
-               claims: claims,
-               expires: DateTime.UtcNow.AddMinutes(15),
-               signingCredentials: creds
-            ); 
-
-            return new JwtSecurityTokenHandler().WriteToken(tokenDescriptor);
+         var token = await authService.LoginAsync(request);
+         if (token is null)
+         {
+            return BadRequest("Username atawa Katasandina Salah.");
+         }
+         return Ok(token);
       }
    }
 }
